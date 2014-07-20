@@ -1,7 +1,13 @@
-from django.forms import widgets
+from django.contrib.auth.models import User
 from rest_framework import serializers
 from bgstatsdb.models import Player, BoardGame, Location, GameInstance, PlayerScore, PlayerPlace
 
+class UserSerializer(serializers.ModelSerializer):
+    postedgames = serializers.PrimaryKeyRelatedField(many=True)
+    
+    class Meta:
+        model = User
+        fields = ('id', 'user', 'postedgames')
 
 class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,14 +28,15 @@ class LocationSerializer(serializers.ModelSerializer):
 
     
 class GameInstanceSerializer(serializers.ModelSerializer):
-    player_score = serializers.RelatedField(many=True)
-    player_place = serializers.RelatedField(many=True)
+    playerscore = serializers.RelatedField(many=True)
+    playerplace = serializers.RelatedField(many=True)
     boardgame = serializers.RelatedField()
     location = serializers.RelatedField()
+    poster = serializers.Field(source='poster.username')
     
     class Meta:
         model = GameInstance
-        fields = ('player_score', 'player_place', 'boardgame', 'location', 'date')
+        fields = ('playerscore', 'playerplace', 'boardgame', 'location', 'date', 'poster')
         
 
 class PlayerScoreSerializer(serializers.ModelSerializer):
