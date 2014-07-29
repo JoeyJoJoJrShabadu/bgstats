@@ -1,42 +1,68 @@
-from django.http import Http404
-import sys
-from rest_framework import status
+from django.contrib.auth.models import User
+from rest_framework import generics
+from rest_framework import permissions
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser
-from rest_framework.views import APIView
-from rest_framework import generics
+from rest_framework.reverse import reverse
 
-from bgstatsdb.models import Player, BoardGame, Location, GameInstance, PlayerScore, PlayerPlace
-from bgstats.md_serializers import PlayerSerializer, BoardGameSerializer, LocationSerializer, PlayerScoreSerializer, PlayerPlaceSerializer, GameInstanceSerializer
+from bgstatsdb.models import * 
+from bgstatsdb.md_serializers import *
+from bgstatsdb.permissions import IsOwnerOrReadOnly
 
-ALLMODELS = {'player':["Player", Player, PlayerSerializer],
+AUTOMODELS = {'player':["Player", Player, PlayerSerializer],
              'boardgame':["BoardGame", BoardGame, BoardGameSerializer],
-             'gameinstance':["GameInstance", GameInstance, GameInstanceSerializer],
              'location':["Location", Location, LocationSerializer],
              'playerscore':["PlayerScore", PlayerScore, PlayerScoreSerializer],
-             'playerplace':["PlayerPlace", PlayerPlace, PlayerPlaceSerializer]}
+             'playerplace':["PlayerPlace", PlayerPlace, PlayerPlaceSerializer],
+             'user':["User", User, UserSerializer]}
 
 
-def get_models(modeltype):
-        if not modeltype in ALLMODELS.keys():
-            raise Http404
-        
-        return ALLMODELS[modeltype]
-    
 def ClassFactory(name, qs, sc, BaseClass=generics.RetrieveUpdateDestroyAPIView):
     def __init__(self, **kwargs):
         setattr(self, 'queryset', qs.objects.all())
         setattr(self, 'serializer_class', sc)
-        
         BaseClass.__init__(self)
     
     newclass = type(name, (BaseClass,),{"__init__":__init__})
     return newclass
 
-for vals in ALLMODELS.values():
+
+for key, vals in AUTOMODELS.items():
     vars()[vals[0] + "List"] = ClassFactory(vals[0] + "List", vals[1], vals[2], BaseClass=generics.ListCreateAPIView)
+    if "user" == key:
+        vars()[vals[0] + "Detail"] = ClassFactory(vals[0] + "List", vals[1], vals[2], BaseClass=generics.RetrieveAPIView)
+        continue
     vars()[vals[0] + "Detail"] = ClassFactory(vals[0] + "List", vals[1], vals[2], BaseClass=generics.RetrieveUpdateDestroyAPIView)
+
+
+class GameInstanceList(generics.ListCreateAPIView):
+    queryset = GameInstance.objects.all()
+    serializer_class = GameInstanceSerializer
+    permission_classes = (IsOwnerOrReadOnly)
+    
+    def pre_save(self, obj):
+        obj.poster = self.request.user
+
+
+class GameInstanceDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = GameInstance.objects.all()
+    serializer_class = GameInstanceSerializer
+    permission_classes = (IsOwnerOrReadOnly)
+    
+    def pre_save(self, obj):
+        obj.poster = self.request.user
+
+@api_view(['GET',])
+def api_root(request, format=None):
+    apis = {'users': reverse('user-list', request=request, format=format),
+            'gameinstances': reverse('gameinstance-list', request=request, format=format)}
+    
+    for key in AUTOMODELS.keys():
+        apis[key + 's'] = reverse(key + '-list', request=request, format=format)
+        
+    return Response(apis)
+
+
 """     
 class PlayerList(generics.ListCreateAPIView):
     queryset = Player.objects.all()
