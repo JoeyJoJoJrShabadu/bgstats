@@ -48,11 +48,11 @@ class FBGame(models.Model):
 
 
 class GameInstance(models.Model):
-    playerscore = models.ManyToManyField(PlayerScore)
-    playerplace = models.ManyToManyField(PlayerPlace)
-    boardgame = models.ForeignKey(BoardGame)
-    location = models.OneToOneField(Location)
-    date = models.DateField('date played')
-    poster = models.ForeignKey('auth.User', related_name='postedgames')
+    playerscore = models.ManyToManyField(PlayerScore, blank=False)
+    playerplace = models.ManyToManyField(PlayerPlace, blank=False)
+    boardgame = models.ForeignKey(BoardGame, blank=False)
+    location = models.ForeignKey(Location, blank=False)
+    date = models.DateTimeField('date played', blank=False)
+    #poster = models.ForeignKey('auth.User', related_name='postedgames', blank=False)
     
     

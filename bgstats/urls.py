@@ -13,8 +13,8 @@ urlpatterns = patterns('bgstatsdb.views',
 
     url(r'^admin/', include(admin.site.urls)),
     url(r'^bg/$', 'api_root'),
-    url(r'^bg/gameinstance/$', views.GameInstanceList.as_view(), name='gameinstance-list'),
-    url(r'^bg/gameinstance/(?P<pk>[0-9]+)/$', views.GameInstanceDetail.as_view(), name='gameinstance-detail'),
+    url(r'^bg/gameinstances/$', views.GameInstanceList.as_view(), name='gameinstance-list'),
+    url(r'^bg/gameinstances/(?P<pk>[0-9]+)/$', views.GameInstanceDetail.as_view(), name='gameinstance-detail'),
 )
 
 for key, val in views.AUTOMODELS.items():

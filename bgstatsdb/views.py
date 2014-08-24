@@ -4,17 +4,18 @@ from rest_framework import permissions
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from rest_framework import status
 
 from bgstatsdb.models import * 
 from bgstatsdb.md_serializers import *
 from bgstatsdb.permissions import IsOwnerOrReadOnly
 
-AUTOMODELS = {'player':["Player", Player, PlayerSerializer],
-             'boardgame':["BoardGame", BoardGame, BoardGameSerializer],
-             'location':["Location", Location, LocationSerializer],
-             'playerscore':["PlayerScore", PlayerScore, PlayerScoreSerializer],
-             'playerplace':["PlayerPlace", PlayerPlace, PlayerPlaceSerializer],
-             'user':["User", User, UserSerializer]}
+AUTOMODELS = {'players':["Player", Player, PlayerSerializer],
+             'boardgames':["BoardGame", BoardGame, BoardGameSerializer],
+             'locations':["Location", Location, LocationSerializer],
+             'playerscores':["PlayerScore", PlayerScore, PlayerScoreSerializer],
+             'playerplaces':["PlayerPlace", PlayerPlace, PlayerPlaceSerializer],
+             'users':["User", User, UserSerializer]}
 
 
 def ClassFactory(name, qs, sc, BaseClass=generics.RetrieveUpdateDestroyAPIView):
@@ -38,19 +39,46 @@ for key, vals in AUTOMODELS.items():
 class GameInstanceList(generics.ListCreateAPIView):
     queryset = GameInstance.objects.all()
     serializer_class = GameInstanceSerializer
-    permission_classes = (IsOwnerOrReadOnly)
-    
-    def pre_save(self, obj):
-        obj.poster = self.request.user
+    #permission_classes = (IsOwnerOrReadOnly)
+  
+    def create(self, request, *args, **kwargs):
+        data = request.DATA
+        boardgame, _ = BoardGame.objects.get_or_create(name=data['boardgame'])
+        location, _ = Location.objects.get_or_create(name=data['location'])
+        
+        gi, _ = GameInstance.objects.get_or_create(boardgame=boardgame,
+                                           location=location,
+                                           date=data['date'])
+         
+        for playerscore in data['playerscore']:
+            newPlayer, _ = Player.objects.get_or_create(name=playerscore['player']['name'])
+            createdPS, _ = PlayerScore.objects.get_or_create(player=newPlayer,
+                                                          score=int(playerscore['score']))
+            gi.playerscore.add(createdPS)
+            
+        for playerplace in data['playerplace']:
+            newPlayer, _ = Player.objects.get_or_create(name=playerplace['player']['name'])
+            createdPP, _ = PlayerPlace.objects.get_or_create(player=newPlayer,
+                                                          place=int(playerplace['place']))
+            gi.playerplace.add(createdPP)
+        
+        serializer = GameInstanceSerializer(gi)
+        
+        return Response(serializer.data, 
+                        status=status.HTTP_201_CREATED)
+                        
+         
+    #def pre_save(self, obj):
+    #    obj.poster = self.request.user
 
 
 class GameInstanceDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = GameInstance.objects.all()
     serializer_class = GameInstanceSerializer
-    permission_classes = (IsOwnerOrReadOnly)
+    #permission_classes = (IsOwnerOrReadOnly)
     
-    def pre_save(self, obj):
-        obj.poster = self.request.user
+    #def pre_save(self, obj):
+    #    obj.poster = self.request.user
 
 @api_view(['GET',])
 def api_root(request, format=None):
@@ -58,7 +86,7 @@ def api_root(request, format=None):
             'gameinstances': reverse('gameinstance-list', request=request, format=format)}
     
     for key in AUTOMODELS.keys():
-        apis[key + 's'] = reverse(key + '-list', request=request, format=format)
+        apis[key] = reverse(key + '-list', request=request, format=format)
         
     return Response(apis)
 

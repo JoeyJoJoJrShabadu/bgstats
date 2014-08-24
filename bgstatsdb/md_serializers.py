@@ -32,11 +32,11 @@ class GameInstanceSerializer(serializers.ModelSerializer):
     playerplace = serializers.RelatedField(many=True)
     boardgame = serializers.RelatedField()
     location = serializers.RelatedField()
-    poster = serializers.Field(source='poster.username')
+    #poster = serializers.Field(source='poster.username')
     
     class Meta:
         model = GameInstance
-        fields = ('playerscore', 'playerplace', 'boardgame', 'location', 'date', 'poster')
+        fields = ('playerscore', 'playerplace', 'boardgame', 'location', 'date')
         
 
 class PlayerScoreSerializer(serializers.ModelSerializer):
