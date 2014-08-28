@@ -30,13 +30,15 @@ class LocationSerializer(serializers.ModelSerializer):
 class GameInstanceSerializer(serializers.ModelSerializer):
     playerscore = serializers.RelatedField(many=True)
     playerplace = serializers.RelatedField(many=True)
+    playerorder = serializers.RelatedField(many=True)
+    photo = serializers.ImageField()
     boardgame = serializers.RelatedField()
     location = serializers.RelatedField()
     #poster = serializers.Field(source='poster.username')
     
     class Meta:
         model = GameInstance
-        fields = ('playerscore', 'playerplace', 'boardgame', 'location', 'date')
+        fields = ('playerscore', 'playerplace', 'playerorder', 'photo', 'boardgame', 'location', 'date')
         
 
 class PlayerScoreSerializer(serializers.ModelSerializer):
@@ -53,3 +55,10 @@ class PlayerPlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlayerPlace
         fields = ('player', 'place')
+
+class PlayerOrderSerializer(serializers.ModelSerializer):
+    player = serializers.RelatedField()
+    
+    class Meta:
+        model = PlayerPlace
+        fields = ('player', 'order')

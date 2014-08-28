@@ -43,6 +43,17 @@ class PlayerPlace(models.Model):
         return "%s: %d" % (self.player, self.place)
 
 
+class PlayerOrder(models.Model):
+    player = models.ForeignKey(Player)
+    order = models.IntegerField()
+    
+    def __str__(self):
+        return "%s: %d" % (self.player, self.order)
+    
+    def __unicode__(self):
+        return "%s: %d" % (self.player, self.order)
+
+
 class FBGame(models.Model):
     gametext = models.TextField()
 
@@ -50,9 +61,11 @@ class FBGame(models.Model):
 class GameInstance(models.Model):
     playerscore = models.ManyToManyField(PlayerScore, blank=False)
     playerplace = models.ManyToManyField(PlayerPlace, blank=False)
+    playerorder = models.ManyToManyField(PlayerOrder, blank=False)
+    photo = models.ImageField(upload_to='photos')
     boardgame = models.ForeignKey(BoardGame, blank=False)
     location = models.ForeignKey(Location, blank=False)
-    date = models.DateTimeField('date played', blank=False)
+    date = models.DateField('date played', blank=False)
     #poster = models.ForeignKey('auth.User', related_name='postedgames', blank=False)
     
     

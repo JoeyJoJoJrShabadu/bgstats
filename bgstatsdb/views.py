@@ -1,3 +1,6 @@
+from itertools import chain
+import json
+
 from django.contrib.auth.models import User
 from rest_framework import generics
 from rest_framework import permissions
@@ -40,16 +43,41 @@ class GameInstanceList(generics.ListCreateAPIView):
     queryset = GameInstance.objects.all()
     serializer_class = GameInstanceSerializer
     #permission_classes = (IsOwnerOrReadOnly)
-  
+    
+    def get_queryset(self):
+        queryset = GameInstance.objects.all()
+        
+        boardgame = self.request.QUERY_PARAMS.get('boardgame', None)
+        location = self.request.QUERY_PARAMS.get('location', None)
+        player = self.request.QUERY_PARAMS.get('player', None)
+        
+        if boardgame is not None:
+            queryset = queryset.filter(boardgame__name=boardgame)
+        
+        if location is not None:
+            queryset = queryset.filter(location__name=location)
+        
+        if player is not None:
+            ps = queryset.filter(playerscore__player__name=player)
+            pp = queryset.filter(playerplace__player__name=player)
+            po = queryset.filter(playerorder__player__name=player)
+            queryset = list(chain(pp, ps))
+
+        return queryset
+         
     def create(self, request, *args, **kwargs):
-        data = request.DATA
+        data = json.loads(request.DATA['gi'])
+        file = request.data['FILE']
         boardgame, _ = BoardGame.objects.get_or_create(name=data['boardgame'])
         location, _ = Location.objects.get_or_create(name=data['location'])
         
         gi, _ = GameInstance.objects.get_or_create(boardgame=boardgame,
                                            location=location,
                                            date=data['date'])
-         
+        
+        if data.has_key('photo'):
+            gi.photo = data['photo']
+            
         for playerscore in data['playerscore']:
             newPlayer, _ = Player.objects.get_or_create(name=playerscore['player']['name'])
             createdPS, _ = PlayerScore.objects.get_or_create(player=newPlayer,
@@ -61,6 +89,12 @@ class GameInstanceList(generics.ListCreateAPIView):
             createdPP, _ = PlayerPlace.objects.get_or_create(player=newPlayer,
                                                           place=int(playerplace['place']))
             gi.playerplace.add(createdPP)
+        
+        for playerorder in data['playerorder']:
+            newPlayer, _ = Player.objects.get_or_create(name=playerplace['player']['name'])
+            createdPO, _ = PlayerOrder.objects.get_or_create(player=newPlayer,
+                                                          order=int(playerorder['order']))
+            gi.playerorder.add(createdPO)
         
         serializer = GameInstanceSerializer(gi)
         
