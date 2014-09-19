@@ -1,7 +1,11 @@
 from itertools import chain
 import json
 
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
+from rest_framework.views import APIView
+from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
 from rest_framework import generics
 from rest_framework import permissions
 from rest_framework.decorators import api_view
@@ -11,7 +15,8 @@ from rest_framework import status
 
 from bgstatsdb.models import * 
 from bgstatsdb.md_serializers import *
-from bgstatsdb.permissions import IsOwnerOrReadOnly
+from bgstatsdb import authentication
+from bgstatsdb.permissions import IsOwnerOrReadOnly, IsAdmin
 
 AUTOMODELS = {'players':["Player", Player, PlayerSerializer],
              'boardgames':["BoardGame", BoardGame, BoardGameSerializer],
@@ -114,6 +119,30 @@ class GameInstanceDetail(generics.RetrieveUpdateDestroyAPIView):
     #def pre_save(self, obj):
     #    obj.poster = self.request.user
 
+
+class UserView(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    model = User
+    
+    def get_permissions(self):
+        if (self.request.method == 'POST'):
+            return AllowAny()        
+        else:
+             return IsAdmin()
+
+
+class AuthView(APIView):
+    authentication_classes = (authentication.QuietBasicAuthentication,)
+    
+    def post(self, request, *args, **kwargs):
+        login(request, request.user)
+        return Response(UserSerializer(request.user).data)
+    
+    def delete(self, request, *args, **kwargs):
+        logout(request)
+        return Response({}) 
+    
+    
 @api_view(['GET',])
 def api_root(request, format=None):
     apis = {'users': reverse('user-list', request=request, format=format),
